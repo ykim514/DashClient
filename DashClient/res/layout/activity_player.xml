@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<RelativeLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:id="@+id/playerLayout"   > 
+    
+<!--     <TextureView 
+        android:id="@+id/mTextureView"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_centerHorizontal="true"
+        android:layout_centerVertical="true"
+        android:fitsSystemWindows="false"/> -->
+    
+ <SurfaceView 
+        android:id="@+id/mSurfaceView"
+        android:layout_height="fill_parent"
+        android:layout_width="fill_parent"
+        android:layout_centerHorizontal="true"
+        android:layout_centerVertical="true"
+        android:fitsSystemWindows="false" />
+    
+    <ImageView
+        android:id="@+id/playBtn"
+        android:layout_width="150dip"
+        android:layout_height="150dip"
+        android:layout_centerHorizontal="true"
+        android:layout_centerVertical="true"
+        android:onClick="mOnClick" />
+    
+<!--     <ImageView 
+        android:id="@+id/widisetBtn"
+        android:layout_width="45dip"
+        android:layout_height="45dip"
+        android:layout_alignParentTop="true"
+        android:layout_alignParentRight="true"
+        android:layout_margin="15dip"
+        android:src="@drawable/widi"
+        android:onClick="mOnClick" /> --> 
+    
+    <SeekBar
+        android:id="@+id/seekbar"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_alignParentBottom="true"
+        android:paddingBottom="5dip"
+        android:paddingLeft="5dip"
+        android:paddingRight="5dip"
+        android:layout_marginBottom="30dip"
+        android:progressDrawable="@drawable/seekbar"
+        android:thumb="@drawable/thumb"
+        android:max="1000" />
+    
+    <LinearLayout 
+        android:id="@+id/timeTextLayout"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_centerHorizontal="true"
+        android:orientation="horizontal"
+        android:layout_above="@id/seekbar" >
+        
+        <TextView
+            android:id="@+id/seektimeTxt"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textColor="#FFFFFF"
+            android:textSize="20sp"
+            android:text="00:00:00" 
+            android:shadowColor="#000000"  
+            android:shadowRadius="3" />
+        
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textColor="#FFFFFF"
+            android:textSize="20sp"
+            android:text=" / " 
+            android:shadowColor="#000000"  
+            android:shadowRadius="3" />
+        
+        <TextView
+            android:id="@+id/totaltimeTxt"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textColor="#FFFFFF"
+            android:textSize="20sp"
+            android:text="00:00:00" 
+            android:shadowColor="#000000"  
+            android:shadowRadius="3" />
+        
+    </LinearLayout>
+        
+   
+</RelativeLayout>
