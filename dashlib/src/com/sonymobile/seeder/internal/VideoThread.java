@@ -20,10 +20,7 @@ import static com.sonymobile.seeder.internal.HandlerHelper.sendMessageAndAwaitRe
 import static com.sonymobile.seeder.internal.Player.MSG_CODEC_NOTIFY;
 
 import java.io.IOException;
-import java.io.ObjectInputStream;
-//
 import java.io.ObjectOutputStream;
-//
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.nio.ByteBuffer;
@@ -59,7 +56,7 @@ import com.sonymobile.seeder.internal.drm.DrmSession;
 
 public final class VideoThread extends VideoCodecThread {
 
-	private static final boolean LOGS_ENABLED = Configuration.DEBUG || false;
+	private static final boolean LOGS_ENABLED = Configuration.DEBUG;
 
 	private static final String TAG = "VideoThread";
 
@@ -150,10 +147,9 @@ public final class VideoThread extends VideoCodecThread {
 	/*
 	 * To send AccessUnit to seeder.
 	 */
-	private static final int MSG_ACCEPT = 101;
-	private static final int MSG_READ = 102;
-	private static final int MSG_WRITE = 103;
-	private static final int MSG_CLOSE = 104;
+	private static final int MSG_ACCEPT = 1;
+	private static final int MSG_WRITE = 2;
+	private static final int MSG_CLOSE = 3;
 	private static final String TAG2 = "VideoThread.Socket";
 	private ServerSocket mServerSocket;
 	private Socket mSocket;
@@ -161,7 +157,6 @@ public final class VideoThread extends VideoCodecThread {
 	private SocketHandler mSocketHandler;
 	private LinkedList<AccessUnit> mLinkedList = new LinkedList<AccessUnit>();
 	private ObjectOutputStream mSocketOutputStream;
-	private ObjectInputStream mSocketInputStream;
 	private boolean isBinded = false;
 	private Object mBindedLock = new Object();
 
@@ -200,14 +195,7 @@ public final class VideoThread extends VideoCodecThread {
 		mSocketThread = new HandlerThread(TAG2);
 		mSocketThread.start();
 		mSocketHandler = new SocketHandler(mSocketThread.getLooper());
-
-		try {
-			mSocketHandler.sendEmptyMessage(MSG_ACCEPT);
-			Log.i(TAG2, "send accept message");
-		} catch (Exception e) {
-			Log.e(TAG2, e.getMessage(), e);
-		}
-		//
+		mSocketHandler.sendEmptyMessage(MSG_ACCEPT);
 	}
 
 	@Override
@@ -913,79 +901,58 @@ public final class VideoThread extends VideoCodecThread {
 	}
 
 	private void onAccept() {
-		Log.i(TAG, "onAccept");
 		try {
 			synchronized (mBindedLock) {
 				if (!isBinded) {
 					if (mServerSocket == null || !mServerSocket.isBound()) {
 						mServerSocket = new ServerSocket(55000, 1);
 						isBinded = true;
-						Log.i(TAG, "server socket");
 					}
+				} else {
+					Log.i(TAG, "server socket already binded");
+					return;
 				}
 			}
-
+			if(mSocket != null && mSocket.isConnected()) {
+				Log.w(TAG, "one client already connected");
+				return;
+			}
 			try {
 				mSocket = mServerSocket.accept();
 				mSocketOutputStream = new ObjectOutputStream(mSocket.getOutputStream());
-				mSocketInputStream = new ObjectInputStream(mSocket.getInputStream());
-				Log.i(TAG, "server socket accpet");
 			} catch (Exception e) {
-				Log.e(TAG, e.getMessage());
+				Log.e(TAG, e.getMessage(), e);
+				mSocketHandler.sendEmptyMessage(MSG_CLOSE);
 			}
 		} catch (Exception e) {
 			Log.e(TAG, e.getMessage(), e);
-			mSocketHandler.sendEmptyMessage(MSG_CLOSE);
 		}
-
 	}
 
 	private void onClose() {
 		try {
 			if (mSocket != null && mSocket.isConnected()) {
-				mSocketInputStream.close();
-				mSocketInputStream = null;
-
 				mSocketOutputStream.close();
 				mSocketOutputStream = null;
-
 				mSocket.close();
-				Log.i(TAG, "socket closed");
 			}
 		} catch (Exception e) {
 			Log.e(TAG, e.getMessage(), e);
 		}
 	}
 
-	// private void onWrite(AccessUnit au) { // doDequeueOutput
 	private void onWrite() {
-		//Log.i(TAG, "onWrite");
 		try {
 			if (mSocket == null || mSocket.isClosed()) {
 				Log.i(TAG, "socket is closed");
 				return;
 			}
-
-			Log.i(TAG, "onWrite");
-
-			AccessUnit au = mLinkedList.removeFirst();
-			SendObject sobj = new SendObject(au);
-			Log.i(TAG, "after make input stream");
+			SendObject sobj = new SendObject(mLinkedList.removeFirst());
 			mSocketOutputStream.writeObject(sobj);
-			Log.i(TAG, "after write object");
 			mSocketOutputStream.flush();
-			//oos.close();
-			//ois.close();
-			Log.i(TAG, "after write AccessUnit");
 		} catch (Exception e) {
 			Log.e(TAG, e.getMessage(), e);
-			if (mSocket != null && mSocket.isConnected()) {
-				try {
-					mSocket.close();
-					mSocket = null;
-				} catch (IOException ie) {
-				}
-			}
+			mSocketHandler.sendEmptyMessage(MSG_CLOSE);
 		}
 	}
 
@@ -999,23 +966,21 @@ public final class VideoThread extends VideoCodecThread {
 		public void handleMessage(Message msg) {
 			switch (msg.what) {
 			case MSG_ACCEPT:
-				if (isBinded) {
-					Log.i(TAG, "Already binded");
-					break;
-				}
+				Log.i(TAG, "before onAccept");
 				onAccept();
+				Log.i(TAG, "after onAccept");
 				break;
 			case MSG_WRITE:
-				Log.i(TAG,"before onWrite");
+				Log.i(TAG, "before onWrite");
 				onWrite();
+				Log.i(TAG, "after onWrite");
 				break;
 			case MSG_CLOSE:
-				if (mSocket != null && mSocket.isConnected()) {
-					onClose();
-				}
+				Log.i(TAG, "before onClose");
+				onClose();
+				Log.i(TAG, "after onClose");
 				break;
 			}
-
 		}
 	}
 
