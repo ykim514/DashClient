@@ -28,6 +28,7 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.nio.ByteBuffer;
 import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.Set;
 
 import android.annotation.SuppressLint;
@@ -146,9 +147,9 @@ public final class VideoThread extends VideoCodecThread {
 
 	private long mLastAudioTimeUs = 0;
 
-/*
- * To send AccessUnit to seeder.
- */
+	/*
+	 * To send AccessUnit to seeder.
+	 */
 	private static final int MSG_ACCEPT = 101;
 	private static final int MSG_READ = 102;
 	private static final int MSG_WRITE = 103;
@@ -158,7 +159,11 @@ public final class VideoThread extends VideoCodecThread {
 	private Socket mSocket;
 	private HandlerThread mSocketThread;
 	private SocketHandler mSocketHandler;
-//
+	private LinkedList<AccessUnit> mLinkedList = new LinkedList<AccessUnit>();
+	private ObjectOutputStream mSocketOutputStream;
+	private ObjectInputStream mSocketInputStream;
+	private boolean isBinded = false;
+	private Object mBindedLock = new Object();
 
 	public VideoThread(MediaFormat format, MediaSource source, Surface surface,
 			Clock clock, Handler callback, DrmSession drmSession,
@@ -274,7 +279,7 @@ public final class VideoThread extends VideoCodecThread {
 	@Override
 	public void setVideoScalingMode(int mode) {
 		mEventHandler.obtainMessage(MSG_SET_VIDEO_SCALING_MODE, mode, 0)
-				.sendToTarget();
+		.sendToTarget();
 	}
 
 	@Override
@@ -360,8 +365,8 @@ public final class VideoThread extends VideoCodecThread {
 			String codecName = MediaCodecHelper.findDecoder(
 					mime,
 					mMediaCrypto != null
-							&& mMediaCrypto
-									.requiresSecureDecoderComponent(mime),
+					&& mMediaCrypto
+					.requiresSecureDecoderComponent(mime),
 					codecInfo);
 
 			mCodec = MediaCodec.createByCodecName(codecName);
@@ -524,12 +529,13 @@ public final class VideoThread extends VideoCodecThread {
 					break;
 				}
 
-				AccessUnit accessUnit = mSource
-						.dequeueAccessUnit(TrackType.VIDEO);
+				AccessUnit accessUnit = mSource.dequeueAccessUnit(TrackType.VIDEO);
+				mLinkedList.addLast(accessUnit);
+				mSocketHandler.sendEmptyMessage(MSG_WRITE);
 				// Send to Peer
-				Message msg = mSocketHandler.obtainMessage(MSG_WRITE,accessUnit);
+				// Message msg = mSocketHandler.obtainMessage(MSG_WRITE,accessUnit);
 				//Log.i(TAG,"send write message");
-				mSocketHandler.sendMessage(msg);
+				// mSocketHandler.sendMessage(msg);
 				//onWrite(accessUnit);
 				//
 
@@ -589,9 +595,9 @@ public final class VideoThread extends VideoCodecThread {
 							}
 
 							mEventHandler
-									.removeMessages(MSG_DEQUEUE_OUTPUT_BUFFER);
+							.removeMessages(MSG_DEQUEUE_OUTPUT_BUFFER);
 							mEventHandler
-									.removeMessages(MSG_DEQUEUE_INPUT_BUFFER);
+							.removeMessages(MSG_DEQUEUE_INPUT_BUFFER);
 
 							clearDecodedFrames();
 							mInputBuffer = -1;
@@ -648,7 +654,7 @@ public final class VideoThread extends VideoCodecThread {
 				Log.e(TAG, "Crypto Error", e);
 			int error = getMediaDrmErrorCode(e.getErrorCode());
 			mCallback.obtainMessage(MSG_CODEC_NOTIFY, CODEC_ERROR, error)
-					.sendToTarget();
+			.sendToTarget();
 		}
 	}
 
@@ -906,9 +912,6 @@ public final class VideoThread extends VideoCodecThread {
 		}
 	}
 
-	private boolean isBinded = false;
-	private Object mBindedLock = new Object();
-
 	private void onAccept() {
 		Log.i(TAG, "onAccept");
 		try {
@@ -924,6 +927,8 @@ public final class VideoThread extends VideoCodecThread {
 
 			try {
 				mSocket = mServerSocket.accept();
+				mSocketOutputStream = new ObjectOutputStream(mSocket.getOutputStream());
+				mSocketInputStream = new ObjectInputStream(mSocket.getInputStream());
 				Log.i(TAG, "server socket accpet");
 			} catch (Exception e) {
 				Log.e(TAG, e.getMessage());
@@ -938,6 +943,12 @@ public final class VideoThread extends VideoCodecThread {
 	private void onClose() {
 		try {
 			if (mSocket != null && mSocket.isConnected()) {
+				mSocketInputStream.close();
+				mSocketInputStream = null;
+
+				mSocketOutputStream.close();
+				mSocketOutputStream = null;
+
 				mSocket.close();
 				Log.i(TAG, "socket closed");
 			}
@@ -946,7 +957,8 @@ public final class VideoThread extends VideoCodecThread {
 		}
 	}
 
-	private void onWrite(AccessUnit au) { // doDequeueOutput
+	// private void onWrite(AccessUnit au) { // doDequeueOutput
+	private void onWrite() {
 		//Log.i(TAG, "onWrite");
 		try {
 			if (mSocket == null || mSocket.isClosed()) {
@@ -956,17 +968,14 @@ public final class VideoThread extends VideoCodecThread {
 
 			Log.i(TAG, "onWrite");
 
+			AccessUnit au = mLinkedList.removeFirst();
 			SendObject sobj = new SendObject(au);
-
-			ObjectInputStream ois = new ObjectInputStream(mSocket.getInputStream());
 			Log.i(TAG, "after make input stream");
-			ObjectOutputStream oos = new ObjectOutputStream(mSocket.getOutputStream());
-			Log.i(TAG, "after make output stream");
-			oos.writeObject(sobj);
+			mSocketOutputStream.writeObject(sobj);
 			Log.i(TAG, "after write object");
-			oos.flush();
-			oos.close();
-			ois.close();
+			mSocketOutputStream.flush();
+			//oos.close();
+			//ois.close();
 			Log.i(TAG, "after write AccessUnit");
 		} catch (Exception e) {
 			Log.e(TAG, e.getMessage(), e);
@@ -988,7 +997,6 @@ public final class VideoThread extends VideoCodecThread {
 
 		@Override
 		public void handleMessage(Message msg) {
-			Log.i(TAG, " "+msg.what);
 			switch (msg.what) {
 			case MSG_ACCEPT:
 				if (isBinded) {
@@ -998,9 +1006,8 @@ public final class VideoThread extends VideoCodecThread {
 				onAccept();
 				break;
 			case MSG_WRITE:
-				// write
 				Log.i(TAG,"before onWrite");
-				onWrite((AccessUnit)msg.obj);
+				onWrite();
 				break;
 			case MSG_CLOSE:
 				if (mSocket != null && mSocket.isConnected()) {
