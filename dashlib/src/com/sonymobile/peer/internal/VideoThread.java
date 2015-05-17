@@ -22,13 +22,13 @@ import static com.sonymobile.peer.internal.Player.MSG_CODEC_NOTIFY;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 //
-import java.io.ObjectOutputStream;
-//
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.nio.ByteBuffer;
 import java.util.HashMap;
 import java.util.Set;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedBlockingDeque;
 
 import android.annotation.SuppressLint;
 import android.media.MediaCodec;
@@ -49,16 +49,16 @@ import android.os.SystemClock;
 import android.util.Log;
 import android.view.Surface;
 
-import com.sonymobile.peer.MediaError;
-import com.sonymobile.peer.MetaData;
-import com.sonymobile.peer.TrackInfo.TrackType;
-import com.sonymobile.peer.internal.drm.DrmSession;
 import com.sonymobile.common.AccessUnit;
 import com.sonymobile.common.SendObject;
+import com.sonymobile.peer.MediaError;
+import com.sonymobile.peer.MetaData;
+import com.sonymobile.peer.internal.drm.DrmSession;
+//
 
 public final class VideoThread extends VideoCodecThread {
 
-	private static final boolean LOGS_ENABLED = Configuration.DEBUG || false;
+	private static final boolean LOGS_ENABLED = Configuration.DEBUG;
 
 	private static final String TAG = "VideoThread";
 
@@ -149,19 +149,16 @@ public final class VideoThread extends VideoCodecThread {
 	/*
 	 * To receive from peer
 	 */
-	private static final int MSG_CONNECT = 101;
-	private static final int MSG_READ = 102;
-	private static final int MSG_WRITE = 103;
-	private static final int MSG_CLOSE = 104;
+	private static final int MSG_CONNECT = 1;
+	private static final int MSG_READ = 2;
+	private static final int MSG_CLOSE = 3;
 	private static final String TAG2 = "VideoThread.Socket";
-
 	private Socket mSocket;
 	private HandlerThread mSocketThread;
 	private SocketHandler mSocketHandler;
-	private Object mSocketLock = new Object();
-	private AccessUnit rau;
-
-	//
+	private ObjectInputStream mSocketInputStream;
+	private BlockingQueue<SendObject> mQueue = new LinkedBlockingDeque<SendObject>(30);
+	private Object mConnectionLock = new Object();
 
 	public VideoThread(MediaFormat format, MediaSource source, Surface surface,
 			Clock clock, Handler callback, DrmSession drmSession,
@@ -272,7 +269,7 @@ public final class VideoThread extends VideoCodecThread {
 	@Override
 	public void setVideoScalingMode(int mode) {
 		mEventHandler.obtainMessage(MSG_SET_VIDEO_SCALING_MODE, mode, 0)
-				.sendToTarget();
+		.sendToTarget();
 	}
 
 	@Override
@@ -358,8 +355,8 @@ public final class VideoThread extends VideoCodecThread {
 			String codecName = MediaCodecHelper.findDecoder(
 					mime,
 					mMediaCrypto != null
-							&& mMediaCrypto
-									.requiresSecureDecoderComponent(mime),
+					&& mMediaCrypto
+					.requiresSecureDecoderComponent(mime),
 					codecInfo);
 
 			mCodec = MediaCodec.createByCodecName(codecName);
@@ -522,16 +519,14 @@ public final class VideoThread extends VideoCodecThread {
 					break;
 				}
 				//Log.i(TAG2, "dodo");
-				AccessUnit accessUnit = new AccessUnit();
+				SendObject sendObject= mQueue.take();
+				AccessUnit accessUnit = sendObject.makeAccessUnit();
 				//if (mSocket == null || mSocket.isClosed()) {
-					//accessUnit = mSource.dequeueAccessUnit(TrackType.VIDEO);
+				//accessUnit = mSource.dequeueAccessUnit(TrackType.VIDEO);
 				//}
 				//else{
-					//accessUnit = rau;
+				//accessUnit = rau;
 				//}
-					
-				if(rau!=null)
-					accessUnit = rau;
 
 				if (accessUnit.status == AccessUnit.OK) {
 					if (mSkipToIframe && !accessUnit.isSyncSample) {
@@ -591,9 +586,9 @@ public final class VideoThread extends VideoCodecThread {
 							}
 
 							mEventHandler
-									.removeMessages(MSG_DEQUEUE_OUTPUT_BUFFER);
+							.removeMessages(MSG_DEQUEUE_OUTPUT_BUFFER);
 							mEventHandler
-									.removeMessages(MSG_DEQUEUE_INPUT_BUFFER);
+							.removeMessages(MSG_DEQUEUE_INPUT_BUFFER);
 
 							clearDecodedFrames();
 							mInputBuffer = -1;
@@ -650,7 +645,12 @@ public final class VideoThread extends VideoCodecThread {
 				Log.e(TAG, "Crypto Error", e);
 			int error = getMediaDrmErrorCode(e.getErrorCode());
 			mCallback.obtainMessage(MSG_CODEC_NOTIFY, CODEC_ERROR, error)
-					.sendToTarget();
+			.sendToTarget();
+		} catch (InterruptedException e) {
+			if (LOGS_ENABLED)
+				Log.e(TAG, "Queue error", e);
+			mCallback.obtainMessage(MSG_CODEC_NOTIFY, CODEC_ERROR,
+					MediaError.UNKNOWN).sendToTarget();
 		}
 	}
 
@@ -910,41 +910,27 @@ public final class VideoThread extends VideoCodecThread {
 
 	private void onConnect() {
 		try {
-			synchronized (mSocketLock) {
-				if (mSocket == null || mSocket.isClosed()) {
+			synchronized (mConnectionLock) {
+				if (mSocket == null || !mSocket.isConnected()) {
 					mSocket = new Socket();
+					mSocket.connect(new InetSocketAddress("192.168.49.1", 55000));
+					mSocketInputStream = new ObjectInputStream(mSocket.getInputStream());
+					mSocketHandler.sendEmptyMessage(MSG_READ);
 				}
-				mSocket.connect(new InetSocketAddress("192.168.49.1", 55000));
-				Log.i(TAG2, "Connected!!!!!!!!!!!!!!!!!!!!!");
-				
 			}
-			mSocketHandler.sendEmptyMessage(MSG_READ);
 		} catch (Exception e) {
 			Log.e(TAG, e.getMessage(), e);
 			try {
 				Thread.sleep(1000);
-			} catch (Exception e2) {
-			}
+			} catch (Exception e2) {}
 			mSocketHandler.sendEmptyMessage(MSG_CONNECT);
 		}
 	}
 
 	private void onRead() {
 		try {
-			synchronized (mSocketLock) {
-				if (mSocket != null) {
-					Log.i(TAG, "before reading");
-					ObjectOutputStream oos = new ObjectOutputStream(mSocket.getOutputStream());
-					ObjectInputStream ois = new ObjectInputStream(mSocket.getInputStream());
-					SendObject sobj = (SendObject) ois.readObject();
-					rau = sobj.setAccessUnit();
-					Log.i(TAG2, "after read");
-					Log.i(TAG2, "Access Unit status: "+rau.status);
-					ois.close();
-					oos.close();
-				}
-			}
-			// mSocketHandler.sendEmptyMessage(MSG_CLOSE);
+			mQueue.put((SendObject)mSocketInputStream.readObject());
+			mSocketHandler.sendEmptyMessage(MSG_READ);
 		} catch (Exception e) {
 			Log.e(TAG, e.getMessage(), e);
 			mSocketHandler.sendEmptyMessage(MSG_CLOSE);
@@ -953,15 +939,13 @@ public final class VideoThread extends VideoCodecThread {
 
 	private void onClose() {
 		try {
-			synchronized (mSocketLock) {
-				if (mSocket != null) {
-					mSocket.close();
-					Log.i(TAG,"socket closed");
-					mSocket = null;
-				}
+			if (mSocket != null && mSocket.isConnected()) {
+				mSocketInputStream.close();
+				mSocketInputStream = null;
+				mSocket.close();
+				mSocket = null;
+				mEventHandler.sendEmptyMessage(MSG_CONNECT);
 			}
-
-			mEventHandler.sendEmptyMessage(MSG_CONNECT);
 		} catch (Exception e) {
 			Log.e(TAG, e.getMessage(), e);
 		}
@@ -974,18 +958,21 @@ public final class VideoThread extends VideoCodecThread {
 
 		@Override
 		public void handleMessage(Message msg) {
-			Log.i(TAG,"Message(peer): "+msg.what);
 			switch (msg.what) {
 			case MSG_CONNECT:
+				Log.i(TAG, "before connect");
 				onConnect();
+				Log.i(TAG, "after connect");
 				break;
 			case MSG_READ:
-				Log.i(TAG, "got message read");
+				Log.i(TAG, "before read");
 				onRead();
-				Log.i(TAG, "finished reading");
+				Log.i(TAG, "after read");
 				break;
 			case MSG_CLOSE:
+				Log.i(TAG, "before close");
 				onClose();
+				Log.i(TAG, "after close");
 				break;
 			default:
 				Log.w(TAG, "unknown message");

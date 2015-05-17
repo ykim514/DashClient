@@ -42,7 +42,7 @@ public class SendObject implements Serializable{
 		}
 	}
 	
-	public AccessUnit setAccessUnit(){
+	public AccessUnit makeAccessUnit(){
 		AccessUnit au = new AccessUnit(mStatus);
 		au.size = mSize;
 		au.data = mData;
