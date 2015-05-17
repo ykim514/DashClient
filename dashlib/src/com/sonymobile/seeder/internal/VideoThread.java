@@ -935,6 +935,7 @@ public final class VideoThread extends VideoCodecThread {
 				mSocketOutputStream.close();
 				mSocketOutputStream = null;
 				mSocket.close();
+				mSocket = null;
 			}
 		} catch (Exception e) {
 			Log.e(TAG, e.getMessage(), e);
