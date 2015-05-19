@@ -10,9 +10,12 @@ import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
 
-public class LoginActivity extends Activity implements SocketHandler {
+import com.example.dashclient.DashHttpClient.OnSignInListener;
+
+public class LoginActivity extends Activity implements OnSignInListener {
 	TextView mIdView, mPasswdView;
 	Button mSignupBtn, mSigninBtn;
+	DashHttpClient mDashHttpClient;
 
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
@@ -20,17 +23,18 @@ public class LoginActivity extends Activity implements SocketHandler {
 		setContentView(R.layout.activity_login);
 
 		init();
-		
-		SocketService.addHandler(this);
-		SocketService.addActivity("signIn", this);
-		SocketService.getInstance().init();
+
 	}
 
-	void init(){
-		mIdView = (TextView)findViewById(R.id.idtxt);
-		mPasswdView = (TextView)findViewById(R.id.passwdtxt);
-		mSignupBtn = (Button)findViewById(R.id.upBtn);
-		mSigninBtn = (Button)findViewById(R.id.inBtn);
+	void init() {
+		mIdView = (TextView) findViewById(R.id.idtxt);
+		mPasswdView = (TextView) findViewById(R.id.passwdtxt);
+		mSignupBtn = (Button) findViewById(R.id.upBtn);
+		mSigninBtn = (Button) findViewById(R.id.inBtn);
+
+		mDashHttpClient = new DashHttpClient();
+		mDashHttpClient.setOnSignInListener(this);
+
 	}
 
 	@Override
@@ -48,51 +52,42 @@ public class LoginActivity extends Activity implements SocketHandler {
 		return super.onOptionsItemSelected(item);
 	}
 
-	public void mOnClick(View v){
-		if(v.getId()==mSignupBtn.getId()){
+	public void mOnClick(View v) {
+		if (v.getId() == mSignupBtn.getId()) {
 			Intent intent = new Intent(LoginActivity.this, SignupActivity.class);
 			startActivity(intent);
-		}
-		else if(v.getId()==mSigninBtn.getId()){
-//			String email = mIdView.getText().toString();
-//			String password = mPasswdView.getText().toString();
-//			
-//			if(email.trim().length() == 0) {
-//				Toast.makeText(getApplicationContext(), "아이디를 입력하세요.", Toast.LENGTH_SHORT).show();
-//				mIdView.requestFocus();
-//				return;
-//			}
-//			
-//			if(password.trim().length() == 0) {
-//				Toast.makeText(getApplicationContext(), "비밀번호를 입력하세요.", Toast.LENGTH_SHORT).show();
-//				return;
-//			}
-//			
-//			SocketService.getInstance().signIn(email, password);
-		
-			Intent intent = new Intent(LoginActivity.this, MainActivity.class);
-			startActivity(intent);
+		} else if (v.getId() == mSigninBtn.getId()) {
+			String email = mIdView.getText().toString();
+			String password = mPasswdView.getText().toString();
+
+			if (email.trim().length() == 0) {
+				Toast.makeText(getApplicationContext(), "아이디를 입력하세요.",
+						Toast.LENGTH_SHORT).show();
+				mIdView.requestFocus();
+				return;
+			}
+
+			if (password.trim().length() == 0) {
+				Toast.makeText(getApplicationContext(), "비밀번호를 입력하세요.",
+						Toast.LENGTH_SHORT).show();
+				return;
+			}
+
+			mDashHttpClient.signIn(email, password);
+
 		}
 	}
 
 	@Override
-	public String getName() {
-		return "signIn";
+	public void onFailure(int event, String message) {
+		Toast.makeText(this, String.format("event: %d, %s", event, message),	Toast.LENGTH_SHORT).show();
 	}
 
 	@Override
-	public void onSuccess() {
+	public void onSignIn() {
+		Toast.makeText(this, "로그인 되었습니다.", Toast.LENGTH_SHORT).show();
 		Intent intent = new Intent(LoginActivity.this, MainActivity.class);
 		startActivity(intent);
 	}
 
-	@Override
-	public void onSuccess(Object... args) {
-		// nothing
-	}
-
-	@Override
-	public void onFailure(String message) {
-		Toast.makeText(getApplicationContext(), "로그인에 실패하였습니다.", Toast.LENGTH_SHORT).show();
-	}
 }

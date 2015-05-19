@@ -23,7 +23,7 @@
             android:layout_height="25dip"
             android:layout_margin="5dip"
             android:gravity="center"
-            android:text="ID"
+            android:text="Email"
             android:textColor="#dbdbdb"
             android:textSize="18sp" />
 

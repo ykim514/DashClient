@@ -1,10 +1,13 @@
 package com.example.dashclient;
 
 import java.util.ArrayList;
+import java.util.List;
 
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
+
+import com.example.dashclient.DashHttpClient.OnGetMediaListListener;
 
 import android.app.Activity;
 import android.content.Intent;
@@ -18,10 +21,11 @@ import android.widget.Button;
 import android.widget.ListView;
 import android.widget.Toast;
 
-public class VideoListActivity extends Activity implements SocketHandler {
+public class VideoListActivity extends Activity implements OnGetMediaListListener {
 
 	private static final String TAG = VideoListActivity.class.getName();
-	ArrayList<VideoInfo> videoList = new ArrayList<VideoInfo>();
+	ArrayList<DashMedia> videoList = new ArrayList<DashMedia>();
+	DashHttpClient mDashHttpClient;
 	
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
@@ -29,24 +33,15 @@ public class VideoListActivity extends Activity implements SocketHandler {
 		setContentView(R.layout.activity_videolist);
 		
 		init();
-		getList();
 		initList();
-		
-		SocketService.addActivity(getName(), this);
-		SocketService.addHandler(this);
-		SocketService.getInstance().getMediaList();
 	}
 	
 	void init(){
-		
+		mDashHttpClient = new DashHttpClient();
+		mDashHttpClient.setOnGetMediaListListener(this);
+		mDashHttpClient.getMediaList();
 	}
 	
-	void getList(){
-		videoList.add(new VideoInfo("[MV] F(x) - 첫사랑니","http://211.189.19.23:4389/static/1430291280068.mpd"));
-		videoList.add(new VideoInfo("[MV] EXO - Call me baby","http://211.189.19.23:4389/static/exo.mpd"));
-		videoList.add(new VideoInfo("[Test] Big bunny","http://211.189.19.23:4389/static/test.mpd"));
-		videoList.add(new VideoInfo("Dash Test","http://yt-dash-mse-test.commondatastorage.googleapis.com/media/car-20120827-manifest.mpd"));
-	}
 	void initList(){
 		VideoAdapter adapter;
 		adapter = new VideoAdapter(this, R.layout.item, videoList);
@@ -56,7 +51,7 @@ public class VideoListActivity extends Activity implements SocketHandler {
 			public void onItemClick(AdapterView<?> parent, View view,
 					int position, long id){
 				Intent intent = new Intent(VideoListActivity.this, PlayerActivity.class);
-				intent.putExtra("address", videoList.get(position).mAddress);
+				intent.putExtra("address", videoList.get(position).getPath());
 				startActivity(intent);
 			}
 				});
@@ -81,35 +76,19 @@ public class VideoListActivity extends Activity implements SocketHandler {
 		return super.onOptionsItemSelected(item);
 	}
 
-	@Override
-	public String getName() {
-		return "mediaList";
-	}
 
 	@Override
-	public void onSuccess() {
-		// TODO Auto-generated method stub
+	public void onFailure(int event, String message) {
+		 Toast.makeText(this, String.format("event: %d, %s", event, message), Toast.LENGTH_SHORT).show();
 		
 	}
 
 	@Override
-	public void onSuccess(Object... args) {
-		getList();
-		try {
-			JSONArray array = (JSONArray) args[0];
-			
-			for(int i = 0; i < array.length(); i++) {
-				JSONObject json = array.getJSONObject(i);
-				
-				videoList.add(new VideoInfo(json.getString("media_nm"), "http://211.189.19.23:4389/static/" + json.getString("media_path")));
-			}
-		} catch(Exception e) {
-			Log.e(TAG, e.getMessage(), e);
+	public void onGetMediaList(List<DashMedia> mediaList) {
+		videoList.add(new DashMedia(0,"[MV] EXO - call me baby", 40, "http://211.189.19.23:4389/static/exo.mpd"));
+		for(DashMedia media : mediaList){
+			videoList.add(media);
 		}
-	}
-
-	@Override
-	public void onFailure(String message) {
-		Toast.makeText(getApplicationContext(), "미디어 리스트를 받아오는 도중 오류가 발생하였습니다.", Toast.LENGTH_SHORT).show();
+		
 	}
 }

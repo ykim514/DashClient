@@ -16,6 +16,7 @@ import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 import android.view.View;
 import android.view.View.OnTouchListener;
+import android.view.WindowManager;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.RelativeLayout;
@@ -80,6 +81,8 @@ public class PlayerActivity extends Activity implements SurfaceHolder.Callback,
                 | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN);
 		mPlayerLayout.setSystemUiVisibility(View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN |
                 View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION);
+		getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON); 
+
 		
 		mHandler = new Handler();
 
@@ -263,6 +266,7 @@ public class PlayerActivity extends Activity implements SurfaceHolder.Callback,
 	public boolean onTouch(View v, MotionEvent event) {
 		if(mSeekBar.getVisibility()==View.GONE){
 			setVisible();
+			mHandler.postDelayed(mHideRunnable, 4000);
 		}
 		else{
 			mHandler.removeCallbacks(mHideRunnable);

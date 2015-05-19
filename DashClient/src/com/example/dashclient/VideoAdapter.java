@@ -13,10 +13,10 @@ public class VideoAdapter extends BaseAdapter{
 
 	Context mContext;
 	LayoutInflater inflater;
-	ArrayList<VideoInfo> mList;
+	ArrayList<DashMedia> mList;
 	int mLayout;
 	
-	public VideoAdapter(Context context, int layout, ArrayList<VideoInfo> aV){
+	public VideoAdapter(Context context, int layout, ArrayList<DashMedia> aV){
 		mContext = context;
 		inflater = (LayoutInflater) context.getSystemService(Context.LAYOUT_INFLATER_SERVICE);
 		mList = aV;
@@ -30,7 +30,7 @@ public class VideoAdapter extends BaseAdapter{
 
 	@Override
 	public Object getItem(int position) {
-		return mList.get(position).mTitle;
+		return mList.get(position).getName();
 	}
 
 	@Override
@@ -44,7 +44,7 @@ public class VideoAdapter extends BaseAdapter{
 			convertView = inflater.inflate(mLayout, parent, false);
 		}
 		TextView txt = (TextView)convertView.findViewById(R.id.txt);
-		txt.setText(mList.get(position).mTitle);
+		txt.setText(mList.get(position).getName());
 		return convertView;
 	}
 

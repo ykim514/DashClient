@@ -9,6 +9,8 @@ import android.view.Surface;
 import android.view.TextureView;
 import android.view.View;
 
+import android.view.WindowManager;
+
 //import com.sonymobile.android.media.MediaPlayer;
 import com.sonymobile.peer.MediaPlayer;
 
@@ -37,9 +39,11 @@ public class PeerActivity extends Activity implements TextureView.SurfaceTexture
 		mTextureView.setSystemUiVisibility(View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
 				| View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN);
 		
+		getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON); 
+		
 		mMediaPlayer = new MediaPlayer();
 		try {
-			mMediaPlayer.setDataSource("http://211.189.19.23:4389/static/exo.mpd");
+			mMediaPlayer.setDataSource("http://211.189.19.23:4389/static/test.mpd");
 		} catch (IllegalStateException e) {
 			e.printStackTrace();
 		} catch (IOException e) {
