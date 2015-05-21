@@ -6,6 +6,7 @@ import java.util.concurrent.TimeUnit;
 import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
+import android.net.wifi.p2p.WifiP2pDevice;
 import android.os.Bundle;
 import android.os.Handler;
 import android.util.Log;
@@ -121,6 +122,16 @@ public class PlayerActivity extends Activity implements SurfaceHolder.Callback,
 		mMediaPlayer.setOnSeekCompleteListener(this);
 		mMediaPlayer.setOnCompletionListener(this);
 		mSeekBar.setOnSeekBarChangeListener(new OwnOnSeekBarChangeListener(mMediaPlayer));
+		mSeekBar.setOnTouchListener(new OnTouchListener(){
+			@Override
+			public boolean onTouch(View v, MotionEvent event) {
+				if(DeviceListFragment.WidiStatus == WifiP2pDevice.CONNECTED){
+					Toast.makeText(PlayerActivity.this, "Wifi Direct 연결 중에는 탐색을 할 수 없습니다.", Toast.LENGTH_SHORT).show();
+					return true;
+				}
+				return false;
+			}
+		});
 		mMediaPlayer.prepare();
 		mMediaPlayer.play();
 		mTimeRunnable = new Runnable() {

@@ -31,6 +31,13 @@ public class LoginActivity extends Activity implements OnSignInListener {
 		mPasswdView = (TextView) findViewById(R.id.passwdtxt);
 		mSignupBtn = (Button) findViewById(R.id.upBtn);
 		mSigninBtn = (Button) findViewById(R.id.inBtn);
+		
+		/*
+		 * 로그인하기 기차나서
+		 */
+		mIdView.setText("aa");
+		mPasswdView.setText("bb");
+		//
 
 		mDashHttpClient = new DashHttpClient();
 		mDashHttpClient.setOnSignInListener(this);
@@ -73,7 +80,9 @@ public class LoginActivity extends Activity implements OnSignInListener {
 				return;
 			}
 
-			mDashHttpClient.signIn(email, password);
+			//mDashHttpClient.signIn(email, password);
+			Intent intent = new Intent(LoginActivity.this, MainActivity.class);
+			startActivity(intent);
 
 		}
 	}

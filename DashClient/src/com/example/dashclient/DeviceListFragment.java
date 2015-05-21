@@ -41,6 +41,9 @@ import java.util.List;
  * parent activity to handle user interaction events
  */
 public class DeviceListFragment extends ListFragment implements PeerListListener {
+	
+	//widi state
+	static int WidiStatus = WifiP2pDevice.AVAILABLE;
 
     private List<WifiP2pDevice> peers = new ArrayList<WifiP2pDevice>();
     ProgressDialog progressDialog = null;
@@ -150,6 +153,7 @@ public class DeviceListFragment extends ListFragment implements PeerListListener
         view.setText(device.deviceName);
         view = (TextView) mContentView.findViewById(R.id.my_status);
         view.setText(getDeviceStatus(device.status));
+        WidiStatus = device.status;
     }
 
     @Override
