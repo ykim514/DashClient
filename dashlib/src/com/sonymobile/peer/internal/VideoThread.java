@@ -53,12 +53,13 @@ import com.sonymobile.common.AccessUnit;
 import com.sonymobile.common.SendObject;
 import com.sonymobile.peer.MediaError;
 import com.sonymobile.peer.MetaData;
+import com.sonymobile.peer.TrackInfo.TrackType;
 import com.sonymobile.peer.internal.drm.DrmSession;
 //
 
 public final class VideoThread extends VideoCodecThread {
 
-	private static final boolean LOGS_ENABLED = Configuration.DEBUG;
+	private static final boolean LOGS_ENABLED = Configuration.DEBUG || true;
 
 	private static final String TAG = "VideoThread";
 
@@ -502,7 +503,6 @@ public final class VideoThread extends VideoCodecThread {
 			while ((mStarted || mSeeking) && !mEOS) {
 
 				int inputBufferIndex = mInputBuffer;
-
 				if (inputBufferIndex < 0) {
 					try {
 						inputBufferIndex = mCodec.dequeueInputBuffer(1000);
@@ -514,13 +514,16 @@ public final class VideoThread extends VideoCodecThread {
 						break;
 					}
 				}
-
+				//Log.i(TAG, "input buffer index(2): "+inputBufferIndex);
 				if (inputBufferIndex < 0) {
 					break;
 				}
-				//Log.i(TAG2, "dodo");
+				//Log.i(TAG, "before take(dequeue) - "+mQueue.size());
 				SendObject sendObject= mQueue.take();
 				AccessUnit accessUnit = sendObject.makeAccessUnit();
+				Log.i("accessV","status: "+accessUnit.status+"/ size: "+accessUnit.size+"/ timeMs: "+accessUnit.timeUs/1000);
+				//Log.i("accessV","durationUs: "+accessUnit.durationUs+"/ isSyncSample: "+accessUnit.isSyncSample+"/ trackIndex: "+accessUnit.trackIndex);
+				mSource.dequeueAccessUnit(TrackType.VIDEO);
 				//if (mSocket == null || mSocket.isClosed()) {
 				//accessUnit = mSource.dequeueAccessUnit(TrackType.VIDEO);
 				//}
@@ -929,7 +932,11 @@ public final class VideoThread extends VideoCodecThread {
 
 	private void onRead() {
 		try {
+			//Log.i(TAG, "(onRead)before read object "+mQueue.size());
+			if(mQueue.size() == 29)
+				mQueue.remove();
 			mQueue.put((SendObject)mSocketInputStream.readObject());
+			//Log.i(TAG, "(onRead)after read object "+mQueue.size());
 			mSocketHandler.sendEmptyMessage(MSG_READ);
 		} catch (Exception e) {
 			Log.e(TAG, e.getMessage(), e);
@@ -944,7 +951,6 @@ public final class VideoThread extends VideoCodecThread {
 				mSocketInputStream = null;
 				mSocket.close();
 				mSocket = null;
-				mEventHandler.sendEmptyMessage(MSG_CONNECT);
 			}
 		} catch (Exception e) {
 			Log.e(TAG, e.getMessage(), e);
@@ -965,9 +971,9 @@ public final class VideoThread extends VideoCodecThread {
 				Log.i(TAG, "after connect");
 				break;
 			case MSG_READ:
-				Log.i(TAG, "before read");
+				//Log.i(TAG, "before read");
 				onRead();
-				Log.i(TAG, "after read");
+				//Log.i(TAG, "after read");
 				break;
 			case MSG_CLOSE:
 				Log.i(TAG, "before close");

@@ -21,6 +21,7 @@ import static com.sonymobile.seeder.internal.Player.MSG_CODEC_NOTIFY;
 
 import java.io.IOException;
 import java.io.ObjectOutputStream;
+import java.net.Inet4Address;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.nio.ByteBuffer;
@@ -56,7 +57,7 @@ import com.sonymobile.seeder.internal.drm.DrmSession;
 
 public final class VideoThread extends VideoCodecThread {
 
-	private static final boolean LOGS_ENABLED = Configuration.DEBUG;
+	private static final boolean LOGS_ENABLED = Configuration.DEBUG || true;
 
 	private static final String TAG = "VideoThread";
 
@@ -470,6 +471,9 @@ public final class VideoThread extends VideoCodecThread {
 
 			mEventHandler.removeCallbacksAndMessages(null);
 			mRenderingHandler.removeCallbacksAndMessages(null);
+			
+			//socket close
+			mSocketHandler.obtainMessage(MSG_CLOSE).sendToTarget();
 		}
 	}
 
@@ -497,8 +501,9 @@ public final class VideoThread extends VideoCodecThread {
 
 	private void doDequeueInputBuffer() {
 		try {
+			Log.i(TAG,"doDequeueInputBuffer()");
 			while ((mStarted || mSeeking) && !mEOS) {
-
+				Log.i(TAG,"in while");
 				int inputBufferIndex = mInputBuffer;
 
 				if (inputBufferIndex < 0) {
@@ -516,10 +521,17 @@ public final class VideoThread extends VideoCodecThread {
 				if (inputBufferIndex < 0) {
 					break;
 				}
-
+				
 				AccessUnit accessUnit = mSource.dequeueAccessUnit(TrackType.VIDEO);
-				mLinkedList.addLast(accessUnit);
-				mSocketHandler.sendEmptyMessage(MSG_WRITE);
+				//Log.i("accessV","status: "+accessUnit.status+"/ size: "+accessUnit.size+"/ timeMs: "+accessUnit.timeUs/1000);
+				//Log.i("accessV","durationUs: "+accessUnit.durationUs+"/ isSyncSample: "+accessUnit.isSyncSample+"/ trackIndex: "+accessUnit.trackIndex);
+				//if(!mSocket.isConnected())
+				//	mSocketHandler.sendEmptyMessage(MSG_ACCEPT);
+				if(accessUnit.status == 0 && accessUnit.timeUs != -1){
+					mLinkedList.addLast(accessUnit);
+					mSocketHandler.sendEmptyMessage(MSG_WRITE);
+					//Log.i(TAG, "status: "+accessUnit.status);
+				}
 				// Send to Peer
 				// Message msg = mSocketHandler.obtainMessage(MSG_WRITE,accessUnit);
 				//Log.i(TAG,"send write message");
@@ -538,6 +550,9 @@ public final class VideoThread extends VideoCodecThread {
 						mInputBuffers[inputBufferIndex].position(0);
 						mInputBuffers[inputBufferIndex].put(accessUnit.data, 0,
 								accessUnit.size);
+						
+						Log.i("accessV","status: "+accessUnit.status+"/ size: "+accessUnit.size+"/ timeMs: "+accessUnit.timeUs/1000);
+						Log.i("accessV","durationUs: "+accessUnit.durationUs+"/ isSyncSample: "+accessUnit.isSyncSample+"/ trackIndex: "+accessUnit.trackIndex);
 
 						if (mMediaCrypto != null) {
 							if (accessUnit.cryptoInfo == null) {
@@ -570,6 +585,8 @@ public final class VideoThread extends VideoCodecThread {
 						mInputBuffer = -1;
 					}
 				} else if (accessUnit.status == AccessUnit.FORMAT_CHANGED) {
+					Log.i("TAG","format: "+accessUnit.format);
+					Log.i("TAG","format: "+mFormat);
 					if (accessUnit.format != mFormat) {
 						if (mSupportsAdaptivePlayback) {
 							mFormat = accessUnit.format;
@@ -649,12 +666,11 @@ public final class VideoThread extends VideoCodecThread {
 	private void doDequeueOutputBuffer() {
 		try {
 			while ((mStarted || mSeeking) && !mEOS) {
+				Log.i(TAG,"frame size: "+(framePoolCount()+decodedFrameCount()));
 				Frame frame = removeFrameFromPool();
-
 				int outputBufferIndex;
 				try {
-					outputBufferIndex = mCodec.dequeueOutputBuffer(frame.info,
-							0);
+					outputBufferIndex = mCodec.dequeueOutputBuffer(frame.info, 0);
 				} catch (RuntimeException e) {
 					if (LOGS_ENABLED)
 						Log.e(TAG, "Exception in dequeueOutputBuffer", e);
@@ -664,7 +680,7 @@ public final class VideoThread extends VideoCodecThread {
 				}
 
 				if (outputBufferIndex >= 0) {
-					if (mUpdateAudioClock) {
+					if (mUpdateAudioClock) {	//initial
 						mClock.setSeekTimeUs(frame.info.presentationTimeUs);
 						mUpdateAudioClock = false;
 					}
@@ -690,6 +706,7 @@ public final class VideoThread extends VideoCodecThread {
 
 					if (delayMs > LATE_FRAME_TIME_MS || mSeeking) {
 						addDecodedFrame(frame);
+						Log.i(TAG,"frame: "+frame.info.presentationTimeUs/1000);
 					} else {
 						// Already late... throw it away and dequeue
 						// again!
@@ -776,6 +793,7 @@ public final class VideoThread extends VideoCodecThread {
 				long currentClockTimeUs = mClock.getCurrentTimeUs();
 
 				long delayMs = (frame.info.presentationTimeUs - currentClockTimeUs) / 1000;
+				//Log.i(TAG,"frame ms: "+ frame.info.presentationTimeUs/1000+" , current ms: "+currentClockTimeUs/1000);
 
 				if (delayMs > MAX_EARLY_FRAME_TIME_ALLOWED_MS) {
 					// if (LOGS_ENABLED) Log.w(TAG, "Frame early! (" +
@@ -905,7 +923,9 @@ public final class VideoThread extends VideoCodecThread {
 			synchronized (mBindedLock) {
 				if (!isBinded) {
 					if (mServerSocket == null || !mServerSocket.isBound()) {
+						Log.i(TAG, "before make server socket");
 						mServerSocket = new ServerSocket(55000, 1);
+						Log.i(TAG, "after make server socket");
 						isBinded = true;
 					}
 				} else {
@@ -918,8 +938,11 @@ public final class VideoThread extends VideoCodecThread {
 				return;
 			}
 			try {
+				Log.i(TAG, "(onAccept)before accept");
 				mSocket = mServerSocket.accept();
+				Log.i(TAG, "(onAccept)before make output stream");
 				mSocketOutputStream = new ObjectOutputStream(mSocket.getOutputStream());
+				Log.i(TAG, "(onAccept)after make output stream");
 			} catch (Exception e) {
 				Log.e(TAG, e.getMessage(), e);
 				mSocketHandler.sendEmptyMessage(MSG_CLOSE);
@@ -945,7 +968,7 @@ public final class VideoThread extends VideoCodecThread {
 	private void onWrite() {
 		try {
 			if (mSocket == null || mSocket.isClosed()) {
-				Log.i(TAG, "socket is closed");
+				//Log.i(TAG, "socket is closed");
 				return;
 			}
 			SendObject sobj = new SendObject(mLinkedList.removeFirst());
@@ -972,9 +995,9 @@ public final class VideoThread extends VideoCodecThread {
 				Log.i(TAG, "after onAccept");
 				break;
 			case MSG_WRITE:
-				Log.i(TAG, "before onWrite");
+				//Log.i(TAG, "before onWrite");
 				onWrite();
-				Log.i(TAG, "after onWrite");
+				//Log.i(TAG, "after onWrite");
 				break;
 			case MSG_CLOSE:
 				Log.i(TAG, "before onClose");

@@ -869,8 +869,6 @@ public final class MediaPlayer {
                 return;
             }
 
-            Log.i("dd",msg.what+"");
-
             switch (msg.what) {
                 case Player.NOTIFY_PREPARED:
                     synchronized (thiz.mStateLock) {
@@ -888,8 +886,6 @@ public final class MediaPlayer {
                     synchronized (thiz.mStateLock) {
                         thiz.mState = State.ERROR;
                     }
-                    
-                    Log.i("dd","errrrrrrror");
                     break;
                 case Player.NOTIFY_SEEK_COMPLETE:
                     synchronized (thiz.mStateLock) {

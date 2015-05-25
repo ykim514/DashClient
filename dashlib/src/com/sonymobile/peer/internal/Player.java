@@ -531,16 +531,16 @@ public final class Player {
                     if (msg.obj != null) {
                         thiz.mPrepareHandler = (Handler)msg.obj;
                     }
-                    if (thiz.mDataSourceFd != null) {
+                    if (thiz.mDataSourceFd != null) {		// from local
                         thiz.mSource = new SimpleSource(thiz.mDataSourceFd, thiz.mDataSourceOffset,
                                 thiz.mDataSourceLength, thiz.mEventHandler);
-                    } else {
+                    } else {									// from web
                         if (thiz.mDataSourcePath.startsWith("vuabs://")
                                 || thiz.mDataSourcePath.startsWith("vuabss://")) {
                             thiz.mDataSourcePath = thiz.mDataSourcePath.replaceFirst("vuabs",
                                     "http");
                         }
-                        if (isDASHSource(thiz.mDataSourcePath)) {
+                        if (isDASHSource(thiz.mDataSourcePath)) {		// dash source
                             thiz.mSource = new DASHSource(thiz.mDataSourcePath, thiz.mEventHandler,
                                     thiz.mMaxBufferSize);
                         } else {

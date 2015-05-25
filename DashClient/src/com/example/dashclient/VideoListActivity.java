@@ -45,6 +45,7 @@ public class VideoListActivity extends Activity implements OnGetMediaListListene
 		mDashHttpClient.setOnGetMediaListListener(this);
 		// 일단 하나 박아둠
 		videoList.add(new DashMedia(0,"[MV] EXO - call me baby", 40, "http://211.189.19.23:4389/static/exo.mpd"));
+		videoList.add(new DashMedia(0,"[TEST]", 40, "http://yt-dash-mse-test.commondatastorage.googleapis.com/media/motion-20120802-manifest.mpd"));
 		mDashHttpClient.getMediaList();
 		
 		

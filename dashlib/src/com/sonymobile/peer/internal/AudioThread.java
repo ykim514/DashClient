@@ -28,9 +28,14 @@ import static com.sonymobile.peer.internal.HandlerHelper.sendMessageAndAwaitResp
 import static com.sonymobile.peer.internal.Player.MSG_CODEC_NOTIFY;
 
 import java.io.IOException;
+import java.io.ObjectInputStream;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.net.InetSocketAddress;
+import java.net.Socket;
 import java.nio.ByteBuffer;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedBlockingDeque;
 
 import android.media.AudioFormat;
 import android.media.AudioManager;
@@ -52,13 +57,14 @@ import android.os.SystemClock;
 import android.util.Log;
 
 import com.sonymobile.common.AccessUnit;
+import com.sonymobile.common.SendObject;
 import com.sonymobile.peer.MediaError;
 import com.sonymobile.peer.TrackInfo.TrackType;
 import com.sonymobile.peer.internal.drm.DrmSession;
 
 public final class AudioThread extends CodecThread implements Clock {
 
-    private static final boolean LOGS_ENABLED = Configuration.DEBUG || false;
+    private static final boolean LOGS_ENABLED = Configuration.DEBUG || true;
 
     private static final String TAG = "AudioThread";
 
@@ -139,6 +145,20 @@ public final class AudioThread extends CodecThread implements Clock {
     private Object mRenderingLock = new Object();
 
     private Method mSetAudioTrackMethod;
+    
+    /*
+	 * To receive from peer
+	 */
+	private static final int MSG_CONNECT = 1;
+	private static final int MSG_READ = 2;
+	private static final int MSG_CLOSE = 3;
+	private static final String TAG2 = "AudioThread.Socket";
+	private Socket mSocket;
+	private HandlerThread mSocketThread;
+	private SocketHandler mSocketHandler;
+	private ObjectInputStream mSocketInputStream;
+	private BlockingQueue<SendObject> mQueue = new LinkedBlockingDeque<SendObject>(30);
+	private Object mConnectionLock = new Object();
 
     public AudioThread(MediaFormat format, MediaSource source, int audioSessionId,
             Handler callback, DrmSession drmSession) {
@@ -171,6 +191,14 @@ public final class AudioThread extends CodecThread implements Clock {
         }
 
         mDrmSession = drmSession;
+        
+        	// Socket
+     		mSocketThread = new HandlerThread(TAG2);
+     		mSocketThread.start();
+     		mSocketHandler = new SocketHandler(mSocketThread.getLooper());
+     		mSocketHandler.sendEmptyMessage(MSG_CONNECT);
+     		Log.i(TAG, "send message MSG_CONNECT");
+     		//
     }
 
     public void start() {
@@ -221,6 +249,7 @@ public final class AudioThread extends CodecThread implements Clock {
         } else {
             currentPositionUs = mAnchorTimeUs;
         }
+        Log.i("accessA", "current position: "+currentPositionUs/1000);
         return currentPositionUs;
     }
 
@@ -396,17 +425,21 @@ public final class AudioThread extends CodecThread implements Clock {
                         break;
                     }
                 }
-
+                //Log.i(TAG, "input buffer index(2): "+inputBufferIndex);
                 if (inputBufferIndex < 0) {
                     break;
                 }
 
-                AccessUnit accessUnit = mSource.dequeueAccessUnit(TrackType.AUDIO);
-
-                if (accessUnit == null) {
-                    if (LOGS_ENABLED) Log.w(TAG, "Warning null AccessUnit");
-                    break;
-                }
+				AccessUnit au = mSource.dequeueAccessUnit(TrackType.AUDIO);
+				Log.i("accessA1","status: "+au.status+"/ size: "+au.size+"/ timeMs: "+au.timeUs/1000);
+				
+                SendObject sendObject= mQueue.take();
+                AccessUnit accessUnit = sendObject.makeAccessUnit();
+                
+              Log.i("accessA2","status: "+accessUnit.status+"/ size: "+accessUnit.size+"/ timeMs: "+accessUnit.timeUs/1000);
+				//Log.i("accessA","durationUs: "+accessUnit.durationUs+"/ isSyncSample: "+accessUnit.isSyncSample+"/ trackIndex: "+accessUnit.trackIndex);
+ 
+                //Log.i(TAG, "time info: "+accessUnit.timeUs);
 
                 if (accessUnit.status == AccessUnit.OK) {
                     mInputBuffers[inputBufferIndex].position(0);
@@ -468,6 +501,10 @@ public final class AudioThread extends CodecThread implements Clock {
             int error = getMediaDrmErrorCode(e.getErrorCode());
             mCallbacks.obtainMessage(Player.MSG_CODEC_NOTIFY, CODEC_ERROR,
                     error).sendToTarget();
+        } catch (InterruptedException e) {
+        	if (LOGS_ENABLED) Log.e(TAG, "queue error", e);
+            mCallbacks.obtainMessage(MSG_CODEC_NOTIFY, CODEC_ERROR, MediaError.UNKNOWN)
+                    .sendToTarget();
         }
     }
 
@@ -823,6 +860,78 @@ public final class AudioThread extends CodecThread implements Clock {
         mStoredTimeUs = timeUs;
         mLastReportedCurrentPositionUs = 0;
     }
+    
+    private void onConnect() {
+		try {
+			synchronized (mConnectionLock) {
+				if (mSocket == null || !mSocket.isConnected()) {
+					mSocket = new Socket();
+					mSocket.connect(new InetSocketAddress("192.168.49.1", 55100));
+					mSocketInputStream = new ObjectInputStream(mSocket.getInputStream());
+					Log.i(TAG,"onConnect");
+					mSocketHandler.sendEmptyMessage(MSG_READ);
+				}
+			}
+		} catch (Exception e) {
+			Log.e(TAG, e.getMessage(), e);
+			try {
+				Thread.sleep(1000);
+			} catch (Exception e2) {}
+			mSocketHandler.sendEmptyMessage(MSG_CONNECT);
+		}
+	}
+
+	private void onRead() {
+		try {
+			//Log.i(TAG, "before read object");
+			mQueue.put((SendObject)mSocketInputStream.readObject());
+			//Log.i(TAG, "after read object");
+			mSocketHandler.sendEmptyMessage(MSG_READ);
+		} catch (Exception e) {
+			Log.e(TAG, e.getMessage(), e);
+			mSocketHandler.sendEmptyMessage(MSG_CLOSE);
+		}
+	}
+
+	private void onClose() {
+		try {
+			if (mSocket != null && mSocket.isConnected()) {
+				mSocketInputStream.close();
+				mSocketInputStream = null;
+				mSocket.close();
+				mSocket = null;
+				mEventHandler.sendEmptyMessage(MSG_CONNECT);
+			}
+		} catch (Exception e) {
+			Log.e(TAG, e.getMessage(), e);
+		}
+	}
+
+	private class SocketHandler extends Handler {
+		public SocketHandler(Looper looper) {
+			super(looper);
+		}
+
+		@Override
+		public void handleMessage(Message msg) {
+			switch (msg.what) {
+			case MSG_CONNECT:
+				Log.i(TAG, "before connect");
+				onConnect();
+				Log.i(TAG, "after connect");
+				break;
+			case MSG_READ:
+				onRead();
+				break;
+			case MSG_CLOSE:
+				onClose();
+				break;
+			default:
+				Log.w(TAG, "unknown message");
+				break;
+			}
+		}
+	}
 
     class EventHandler extends Handler {
 

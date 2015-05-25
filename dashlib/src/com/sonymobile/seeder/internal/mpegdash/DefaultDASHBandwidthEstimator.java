@@ -19,6 +19,8 @@ package com.sonymobile.seeder.internal.mpegdash;
 import java.util.ArrayList;
 import java.util.Iterator;
 
+import android.util.Log;
+
 import com.sonymobile.seeder.BandwidthEstimator;
 
 public class DefaultDASHBandwidthEstimator implements BandwidthEstimator {
@@ -106,12 +108,15 @@ public class DefaultDASHBandwidthEstimator implements BandwidthEstimator {
             } else if (weighting > 20) {
                 weighting = 20;
             }
-            totbandwidth += weighting * (double)item.mBytes * 8E6 / item.mDownloadDurationUs;
+            int w = (int)(Math.random() * 10) % 11;
+            totbandwidth += weighting * (double)item.mBytes * 8E5 * w / item.mDownloadDurationUs;
+            //totbandwidth += weighting * (double)item.mBytes * 8E6 / item.mDownloadDurationUs;
+            //Log.i("bandwidth", "total: "+totbandwidth+", weighting: "+weighting+", item.mBytes: "+item.mBytes+", mDown: "+item.mDownloadDurationUs);
             totWeighting += weighting;
         }
 
         double bandwidthBps = ((double)totbandwidth / (double)totWeighting) * 0.95;
-
+        //Log.i("bandwidth","bandwidthBps: "+bandwidthBps);
         return (long)bandwidthBps;
     }
 

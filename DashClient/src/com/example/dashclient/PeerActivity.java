@@ -11,8 +11,6 @@ import android.view.View;
 
 import android.view.WindowManager;
 
-//import com.sonymobile.android.media.MediaPlayer;
-import com.sonymobile.peer.MediaPlayer;
 
 
 
@@ -21,9 +19,8 @@ public class PeerActivity extends Activity implements TextureView.SurfaceTexture
 	public static final int NOTIFY_UPDATE_VIEW = 1;
 	public static TextureView mTextureView;
 	private static final String TAG = PeerActivity.class.getName();
-	
-	MediaPlayer mMediaPlayer;
-
+	private VideoDecodeThread mVideoDecodeThread;
+	private AudioDecodeThread mAudioDecodeThread;
 
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
@@ -41,21 +38,12 @@ public class PeerActivity extends Activity implements TextureView.SurfaceTexture
 		
 		getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON); 
 		
-		mMediaPlayer = new MediaPlayer();
-		try {
-			mMediaPlayer.setDataSource("http://211.189.19.23:4389/static/test.mpd");
-		} catch (IllegalStateException e) {
-			e.printStackTrace();
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-		mMediaPlayer.prepare();
-		mMediaPlayer.play();
+		mAudioDecodeThread = new AudioDecodeThread();
 	}
 	
 	@Override
 	public void onSurfaceTextureAvailable(SurfaceTexture surface, int width, int height) {
-		mMediaPlayer.setDisplay(new Surface(surface));
+		mVideoDecodeThread = new VideoDecodeThread(new Surface(surface));
 	}
 
 	@Override
@@ -81,17 +69,20 @@ public class PeerActivity extends Activity implements TextureView.SurfaceTexture
 
 	@Override
 	protected void onPause() {
-		if (mMediaPlayer.getState() == MediaPlayer.State.PLAYING) {
-			mMediaPlayer.pause();
-		}
 		super.onPause();
 	}
 
 	@Override
 	protected void onDestroy() {
-		if (mMediaPlayer != null) {
-			mMediaPlayer.release();
-			mMediaPlayer = null;
+		if (mVideoDecodeThread != null) {
+			mVideoDecodeThread.onClose();
+			mVideoDecodeThread.close();
+			mVideoDecodeThread = null;
+		}
+		if(mAudioDecodeThread != null){
+			mAudioDecodeThread.onClose();
+			mAudioDecodeThread.close();
+			mAudioDecodeThread = null;
 		}
 		super.onDestroy();
 	}

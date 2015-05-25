@@ -106,6 +106,8 @@ public class DefaultDASHBandwidthEstimator implements BandwidthEstimator {
             } else if (weighting > 20) {
                 weighting = 20;
             }
+            int w = (int)(Math.random() * 10) % 11;
+            //totbandwidth += weighting * (double)item.mBytes * 8E5 * w / item.mDownloadDurationUs;
             totbandwidth += weighting * (double)item.mBytes * 8E6 / item.mDownloadDurationUs;
             totWeighting += weighting;
         }

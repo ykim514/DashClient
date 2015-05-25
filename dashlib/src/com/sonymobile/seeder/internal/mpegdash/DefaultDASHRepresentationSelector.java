@@ -85,6 +85,7 @@ public class DefaultDASHRepresentationSelector implements RepresentationSelector
         } else {
             selectedRepresentations[TrackType.VIDEO.ordinal()] = -1;
         }
+        Log.i("repre","representation: "+selectedRepresentations[TrackType.VIDEO.ordinal()]);
     }
 
     @Override
@@ -191,13 +192,13 @@ public class DefaultDASHRepresentationSelector implements RepresentationSelector
                     }
                 }
             }
-
             if (videoRepresentation != currentVideoRepresentation) {
                 selectedRepresentations[TrackType.VIDEO.ordinal()] = videoRepresentation;
                 representationsChanged = true;
             }
+            Log.i("repre","representation: "+selectedRepresentations[TrackType.VIDEO.ordinal()] + " / " + videoAdaptationSet.representations.size());
         }
-
+        
         return representationsChanged;
     }
 }
