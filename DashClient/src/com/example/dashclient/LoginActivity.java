@@ -80,9 +80,9 @@ public class LoginActivity extends Activity implements OnSignInListener {
 				return;
 			}
 
-			//mDashHttpClient.signIn(email, password);
-			Intent intent = new Intent(LoginActivity.this, MainActivity.class);
-			startActivity(intent);
+			mDashHttpClient.signIn(email, password);
+			//Intent intent = new Intent(LoginActivity.this, MainActivity.class);
+			//startActivity(intent);
 
 		}
 	}

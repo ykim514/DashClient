@@ -28,6 +28,7 @@ public class VideoListActivity extends Activity implements OnGetMediaListListene
 
 	private static final String TAG = VideoListActivity.class.getName();
 	ArrayList<DashMedia> videoList = new ArrayList<DashMedia>();
+	VideoAdapter adapter;
 	DashHttpClient mDashHttpClient;
 	int ListPosition;
 	
@@ -37,17 +38,16 @@ public class VideoListActivity extends Activity implements OnGetMediaListListene
 		setContentView(R.layout.activity_videolist);
 		
 		init();
-		initList();
+		
 	}
 	
 	void init(){
 		mDashHttpClient = new DashHttpClient();
 		mDashHttpClient.setOnGetMediaListListener(this);
 		// 일단 하나 박아둠
-		videoList.add(new DashMedia(0,"[MV] EXO - call me baby", 40, "http://211.189.19.23:4389/static/exo.mpd"));
-		videoList.add(new DashMedia(0,"[TEST]", 40, "http://yt-dash-mse-test.commondatastorage.googleapis.com/media/motion-20120802-manifest.mpd"));
+		//videoList.add(new DashMedia(0,"[MV] EXO - call me baby", 40, "http://211.189.19.23:4389/static/exo.mpd"));
+		//videoList.add(new DashMedia(0,"[TEST]", 40, "http://203.252.180.194/static/1432655247061.mpd"));
 		mDashHttpClient.getMediaList();
-		
 		
 	}
 	
@@ -74,7 +74,7 @@ public class VideoListActivity extends Activity implements OnGetMediaListListene
 	}
 	
 	void initList(){
-		VideoAdapter adapter;
+		
 		adapter = new VideoAdapter(this, R.layout.item, videoList);
 		ListView list = (ListView)findViewById(R.id.list);
 		list.setAdapter(adapter);
@@ -87,6 +87,7 @@ public class VideoListActivity extends Activity implements OnGetMediaListListene
 					dialog.show();
 				}else{
 					Intent intent = new Intent(VideoListActivity.this, PlayerActivity.class);
+					Log.i(TAG," "+videoList.get(ListPosition).getPath());
 					intent.putExtra("address", videoList.get(ListPosition).getPath());
 					startActivity(intent);
 				}
@@ -126,6 +127,7 @@ public class VideoListActivity extends Activity implements OnGetMediaListListene
 		for(DashMedia media : mediaList){
 			videoList.add(media);
 		}
-		
+		initList();
+		Toast.makeText(this, "미디어 정보를 받아옵니다.", Toast.LENGTH_SHORT).show();		
 	}
 }

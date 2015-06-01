@@ -77,6 +77,10 @@ public class VideoDecodeThread extends Thread{
 					SendObject sendObject = mQueue.take();
 					AccessUnit accessUnit = sendObject.makeAccessUnit();
 					Log.i(TAG, "timeMs: " + accessUnit.timeUs / 1000);
+					if(accessUnit.status == -3){
+						codec.flush();
+						continue;
+					}
 					if (accessUnit.status == AccessUnit.OK) {
 						inputBuffers[inputBufferIndex].position(0);
 						inputBuffers[inputBufferIndex].put(accessUnit.data, 0,

@@ -8,8 +8,8 @@ import android.os.Bundle;
 import android.view.Surface;
 import android.view.TextureView;
 import android.view.View;
-
 import android.view.WindowManager;
+import android.widget.Toast;
 
 
 
@@ -63,7 +63,6 @@ public class PeerActivity extends Activity implements TextureView.SurfaceTexture
 
 	@Override
 	protected void onResume() {
-		// TODO Auto-generated method stub
 		super.onResume();
 	}
 
