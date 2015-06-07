@@ -527,7 +527,7 @@ public final class VideoThread extends VideoCodecThread {
 				//Log.i("accessV","durationUs: "+accessUnit.durationUs+"/ isSyncSample: "+accessUnit.isSyncSample+"/ trackIndex: "+accessUnit.trackIndex);
 				//if(!mSocket.isConnected())
 				//	mSocketHandler.sendEmptyMessage(MSG_ACCEPT);
-				if(accessUnit.status == 0 && accessUnit.timeUs != -1){
+				if((accessUnit.status == 0 && accessUnit.timeUs != -1) || accessUnit.status == -3){
 					mLinkedList.addLast(accessUnit);
 					mSocketHandler.sendEmptyMessage(MSG_WRITE);
 					//Log.i(TAG, "status: "+accessUnit.status);

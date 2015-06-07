@@ -96,51 +96,7 @@ public class DeviceDetailFragment extends Fragment implements ConnectionInfoList
 					}
 				});
 
-		mContentView.findViewById(R.id.btn_start_client).setOnClickListener(
-				new View.OnClickListener() {
-
-					@Override
-					public void onClick(View v) {
-						if(device == null) {
-							return;
-						}
-
-						String localIP = Utils.getLocalIPAddress();
-						// Trick to find the ip in the file /proc/net/arp
-						String client_mac_fixed = new String(device.deviceAddress).replace("99", "19");
-						String clientIP = Utils.getIPFromMac(client_mac_fixed);
-
-						// User has picked an image. Transfer it to group owner i.e peer using
-						// FileTransferService.
-						TextView statusText = (TextView) mContentView.findViewById(R.id.status_text);
-						Intent serviceIntent = new Intent(getActivity(), FileTransferService.class);
-						serviceIntent.setAction(FileTransferService.ACTION_SEND_FILE);
-
-
-						if(localIP.equals(IP_SERVER)){
-							serviceIntent.putExtra(FileTransferService.EXTRAS_ADDRESS, clientIP);
-							Log.i("ss","client ip1:"+clientIP);
-						}else{
-							serviceIntent.putExtra(FileTransferService.EXTRAS_ADDRESS, IP_SERVER);
-							Log.i("ss","client ip2:"+IP_SERVER);
-						}
-
-						serviceIntent.putExtra(FileTransferService.EXTRAS_PORT, PORT);
-						// getActivity().startService(serviceIntent);
-
-						Intent intent = new Intent(getActivity(), PeerActivity.class);
-						intent.putExtra(FileTransferService.EXTRAS_PORT, PORT);
-						if(localIP.equals(IP_SERVER)){
-							intent.putExtra(FileTransferService.EXTRAS_ADDRESS, clientIP);
-							Log.i("ss","client ip1:"+clientIP);
-						}else{
-							intent.putExtra(FileTransferService.EXTRAS_ADDRESS, IP_SERVER);
-							Log.i("ss","client ip2:"+IP_SERVER);
-						}
-						startActivity(intent);
-					}
-				});
-
+		
 		return mContentView;
 	}
 
@@ -167,7 +123,7 @@ public class DeviceDetailFragment extends Fragment implements ConnectionInfoList
 		view = (TextView) mContentView.findViewById(R.id.device_info);
 		view.setText("Group Owner IP - " + info.groupOwnerAddress.getHostAddress());
 
-		mContentView.findViewById(R.id.btn_start_client).setVisibility(View.VISIBLE);
+		
 
 		/*
 		if (!server_running){
@@ -207,7 +163,7 @@ public class DeviceDetailFragment extends Fragment implements ConnectionInfoList
 		view.setText(R.string.empty);
 		view = (TextView) mContentView.findViewById(R.id.status_text);
 		view.setText(R.string.empty);
-		mContentView.findViewById(R.id.btn_start_client).setVisibility(View.GONE);
+		
 		this.getView().setVisibility(View.GONE);
 	}
 

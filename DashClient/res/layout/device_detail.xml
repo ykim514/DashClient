@@ -30,12 +30,6 @@
                 android:layout_marginRight="10dip"
                 android:src="@drawable/disconnect" />
 
-            <ImageView
-                android:id="@+id/btn_start_client"
-                android:layout_width="40dip"
-                android:layout_height="40dip"
-                android:src="@drawable/stream"
-                android:visibility="gone" />
         </LinearLayout>
 
         <TextView

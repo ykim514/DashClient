@@ -867,7 +867,9 @@ public final class AudioThread extends CodecThread implements Clock {
 			synchronized (mBindedLock) {
 				if (!isBinded) {
 					if (mServerSocket == null || !mServerSocket.isBound()) {
-						mServerSocket = new ServerSocket(55100, 1, Inet4Address.getByName("192.168.49.1"));
+						Log.i(TAG, "before make server socket");
+						mServerSocket = new ServerSocket(55100, 1);
+						Log.i(TAG, "after make server socket");
 						isBinded = true;
 					}
 				} else {
@@ -931,7 +933,9 @@ public final class AudioThread extends CodecThread implements Clock {
 		public void handleMessage(Message msg) {
 			switch (msg.what) {
 			case MSG_ACCEPT:
+				Log.i(TAG, "before onAccept");
 				onAccept();
+				Log.i(TAG, "after onAccept");
 				break;
 			case MSG_WRITE:
 				onWrite();
