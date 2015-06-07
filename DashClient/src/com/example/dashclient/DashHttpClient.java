@@ -22,7 +22,7 @@ public class DashHttpClient {
 	public static final int MSG_SIGN_OUT = 2;
 	public static final int MSG_SIGN_UP = 3;
 	public static final int MSG_MEDIA_LIST = 4;
-	public static final String HOST = "http://211.189.19.27";
+	public static final String HOST = "http://203.252.180.194";
 	private static final String NAME = DashHttpClient.class.getName();
 	private HandlerThread mEventThread;
 	private EventHandler mEventHandler;
