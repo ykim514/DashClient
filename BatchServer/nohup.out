@@ -1,0 +1,59 @@
+[INFO] 2015-05-20 01:37:13,794 Daemon - Daemon.start, daemon start
+[INFO] 2015-05-20 01:37:13,794 Daemon - Daemon.start, listener start: BATCH
+[INFO] 2015-05-20 01:37:13,794 Daemon - Daemon.start, daemon initialization success
+Traceback (most recent call last):
+  File "Main.py", line 9, in <module>
+    daemon.start()
+  File "/home/hwlee/dash_batch/Daemon.py", line 22, in start
+    for item in self.pubsub.listen():
+  File "/usr/lib/pymodules/python2.7/redis/client.py", line 1308, in listen
+    r = self.parse_response()
+  File "/usr/lib/pymodules/python2.7/redis/client.py", line 1252, in parse_response
+    response = self.connection.read_response()
+  File "/usr/lib/pymodules/python2.7/redis/connection.py", line 265, in read_response
+    response = self._parser.read_response()
+  File "/usr/lib/pymodules/python2.7/redis/connection.py", line 78, in read_response
+    response = self.read()
+  File "/usr/lib/pymodules/python2.7/redis/connection.py", line 72, in read
+    return self._fp.readline()[:-2]
+  File "/usr/lib/python2.7/socket.py", line 447, in readline
+    data = self._sock.recv(self._rbufsize)
+KeyboardInterrupt
+[INFO] 2015-05-20 01:37:20,446 Daemon - Daemon.start, daemon start
+[INFO] 2015-05-20 01:37:20,446 Daemon - Daemon.start, listener start: BATCH
+[INFO] 2015-05-20 01:37:20,447 Daemon - Daemon.start, daemon initialization success
+Traceback (most recent call last):
+  File "Main.py", line 9, in <module>
+    daemon.start()
+  File "/home/hwlee/dash_batch/Daemon.py", line 22, in start
+    for item in self.pubsub.listen():
+  File "/usr/lib/pymodules/python2.7/redis/client.py", line 1308, in listen
+    r = self.parse_response()
+  File "/usr/lib/pymodules/python2.7/redis/client.py", line 1252, in parse_response
+    response = self.connection.read_response()
+  File "/usr/lib/pymodules/python2.7/redis/connection.py", line 265, in read_response
+    response = self._parser.read_response()
+  File "/usr/lib/pymodules/python2.7/redis/connection.py", line 78, in read_response
+    response = self.read()
+  File "/usr/lib/pymodules/python2.7/redis/connection.py", line 72, in read
+    return self._fp.readline()[:-2]
+  File "/usr/lib/python2.7/socket.py", line 447, in readline
+    data = self._sock.recv(self._rbufsize)
+KeyboardInterrupt
+[INFO] 2015-05-20 01:38:25,534 Daemon - Daemon.start, daemon start
+[INFO] 2015-05-20 01:38:25,534 Daemon - Daemon.start, listener start: BATCH
+[INFO] 2015-05-20 01:38:25,534 Daemon - Daemon.start, daemon initialization success
+Traceback (most recent call last):
+  File "Main.py", line 9, in <module>
+    daemon.start()
+  File "/home/hwlee/dash_batch/Daemon.py", line 22, in start
+    for item in self.pubsub.listen():
+  File "/usr/lib/pymodules/python2.7/redis/client.py", line 1308, in listen
+    r = self.parse_response()
+  File "/usr/lib/pymodules/python2.7/redis/client.py", line 1252, in parse_response
+    response = self.connection.read_response()
+  File "/usr/lib/pymodules/python2.7/redis/connection.py", line 265, in read_response
+    response = self._parser.read_response()
+  File "/usr/lib/pymodules/python2.7/redis/connection.py", line 80, in read_response
+    raise ConnectionError("Socket closed on remote end")
+redis.exceptions.ConnectionError: Socket closed on remote end

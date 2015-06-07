@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="ko" ng-app="dashboardApp">
+  <head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, inital-scale-1" />
+    <meta name="desscription" content="" />
+    <meta name="author" content="" />
+    <title>:: DASH Service ::</title>
+    <link rel="icon" href="/images/favicon.ico" />
+    <link rel="stylesheet" type="text/css" href="bower_components/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" type="text/css" href="bower_components/bootstrap/dist/css/bootstrap-theme.min.css" />
+    <link rel="stylesheet" type="text/css" href="bower_components/font-awesome/css/font-awesome.min.css" />
+    <link rel="stylesheet" type="text/css" href="bower_components/angular/angular-csp.css" />
+    <link rel="stylesheet" type="text/css" href="styles/default.css" />
+    <script src="bower_components/jquery/dist/jquery.min.js"></script>
+    <script src="bower_components/bootstrap/dist/js/bootstrap.min.js"></script>
+    <script src="bower_components/angular/angular.js"></script>
+    <script src="bower_components/angular-file-upload/angular-file-upload.min.js"></script>
+    <script src="bower_components/angular-route/angular-route.min.js"></script>
+    <script src="bower_components/socket.io-client/socket.io.js"></script>
+    <script src="bower_components/chartjs/Chart.min.js"></script>
+    <script src="bower_components/datejs/build/date.js"></script>
+    <script src="scripts/config.js"></script>
+    <script src="scripts/controller.js"></script>
+  </head>
+  <body ng-controller="DashboardCtrl">
+    <div id="wrapper">
+      <nav class="navbar navbar-inverse navbar-fixed-top" role="navigation">
+        <div class="navbar-header">
+            <button type="button" class="navbar-toggle" data-toggle="collapse" data-target="#navbar">
+              <span class="sr-only">Toggle navigation</span>
+              <span class="icon-bar"></span>
+              <span class="icon-bar"></span>
+              <span class="icon-bar"></span>
+            </button>
+          <a class="navbar-brand" href="#">Dashboard</a>
+        </div>
+        <ul class="nav navbar-right top-nav">
+          <li>
+            <!--
+            <a href="#"><i class="fa fa-toggle-on"></i> Sign In</a>
+            -->
+          </li>
+        </ul>
+        <div id="navbar" class="collapse navbar-collapse">
+          <ul class="nav navbar-nav side-nav" role="menu">
+            <li class="active"><a href="#/media/upload">Media Upload</a></li>
+            <!--
+            <li><a href="#/monitoring">Resource Monitoring</a></li>
+            <li><a href="javascript:alert('before impl.');">Media Management</a></li>
+            <li><a href="javascript:alert('before impl.');">User Management</a></li>
+            -->
+          </ul>
+        </div>
+      </nav>
+      <div id="page-wrapper" ng-view>
+        <!--
+        <div class="container-fluid">
+          <div class="row">
+            <div class="col-lg-12">
+              <h1 class="page-header">Main</h1>
+              <ol class="breadcrumb">
+                <li>
+                  <i class="fa fa-dashboard"></i>
+                  <a href="/">Main</a>
+                </li>
+                <li class="active">
+                  <i class="fa fa-edit"></i> Dashboard
+                </li>
+              </ol>
+            </div>
+          </div>
+          <div class="row">
+            <div class="col-lg-12">
+              <form method="post" action="/api/admin/media" enctype="multipart/form-data">
+                <div class="form-group">
+                  <label for="media">Media</label>
+                  <input type="file" id="media" placeholder="select media file..." />
+                </div>
+                <button type="submit" class="btn btn-default">Upload</button>
+                <button type="button" class="btn btn-default" ng-click="loadView()">Test</button>
+              </form>
+            </div>
+          </div>
+        </div>
+        -->
+      </div>
+    </div>
+  </body>
+</html>
